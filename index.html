@@ -1,0 +1,368 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Cubo LNK</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: visor 3D grande a la izquierda, panel de variantes + ficha técnica a la derecha; se apila en móvil */
+:root {
+  --bg: #F3F4EF;
+  --surface: #FFFFFF;
+  --stage: #E6E8E0;
+  --stage-2: #F7F8F4;
+  --ink: #141612;
+  --muted: #5D6358;
+  --line: #D9DCD2;
+  --accent: #3C8A00;
+  --accent-ink: #FFFFFF;
+  --chip: #EDEFE8;
+  --f-display: "Space Grotesk", "Segoe UI", system-ui, sans-serif;
+  --f-body: "Inter", "Segoe UI", system-ui, sans-serif;
+  --f-mono: "JetBrains Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0E0F0D; --surface: #171915; --stage: #121411; --stage-2: #1E211B;
+    --ink: #EDF0E8; --muted: #9AA192; --line: #2B2F27; --accent: #7CFF00; --accent-ink: #0E0F0D; --chip: #22261F;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0E0F0D; --surface: #171915; --stage: #121411; --stage-2: #1E211B;
+  --ink: #EDF0E8; --muted: #9AA192; --line: #2B2F27; --accent: #7CFF00; --accent-ink: #0E0F0D; --chip: #22261F;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--ink); font-family: var(--f-body); line-height: 1.5;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 28px 40px;
+}
+.wrap { max-width: 1180px; margin: 0 auto; display: grid; gap: 20px; }
+header { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px 24px; }
+h1 { font-family: var(--f-display); font-weight: 700; font-size: clamp(1.7rem, 3.4vw, 2.4rem); letter-spacing: -0.02em; margin: 0; text-wrap: balance; }
+h1 .dot { display: inline-block; width: .28em; height: .28em; background: var(--accent); margin-left: .06em; }
+header p { margin: 0; color: var(--muted); max-width: 60ch; }
+.main { display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 20px; align-items: start; }
+@media (max-width: 900px) { .main { grid-template-columns: minmax(0, 1fr); } }
+
+.stage {
+  position: relative; border-radius: 14px; overflow: hidden; aspect-ratio: 1 / 1; max-width: 100%; min-height: 320px;
+  background: radial-gradient(120% 90% at 50% 30%, var(--stage-2), var(--stage));
+  border: 1px solid var(--line);
+}
+.stage canvas { display: block; width: 100%; height: 100%; touch-action: none; cursor: grab; }
+.stage canvas:active { cursor: grabbing; }
+.hud { position: absolute; left: 14px; right: 14px; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; pointer-events: none; }
+.hud.top { top: 14px; justify-content: space-between; }
+.hud.bottom { bottom: 14px; justify-content: space-between; }
+.hud > * { pointer-events: auto; }
+.tag { font-family: var(--f-mono); font-size: 12px; background: var(--surface); color: var(--ink); border: 1px solid var(--line); border-radius: 999px; padding: 4px 10px; }
+.tag b { font-weight: 500; color: var(--muted); }
+.btns { display: flex; gap: 6px; flex-wrap: wrap; }
+button.ghost {
+  font: 500 13px var(--f-body); color: var(--ink); background: var(--surface); border: 1px solid var(--line);
+  border-radius: 8px; padding: 6px 11px; cursor: pointer;
+}
+button.ghost:hover { border-color: var(--muted); }
+button:focus-visible, input:focus-visible + .sw { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.panel { display: grid; gap: 16px; min-width: 0; }
+.panel h2 { font-family: var(--f-display); font-size: 13px; font-weight: 500; text-transform: uppercase; letter-spacing: .09em; color: var(--muted); margin: 0 0 8px; }
+.opts { display: grid; gap: 8px; }
+.opt {
+  display: grid; grid-template-columns: 44px minmax(0, 1fr); gap: 12px; align-items: center; text-align: left;
+  font: inherit; color: inherit; background: var(--surface); border: 1px solid var(--line); border-radius: 10px;
+  padding: 10px 12px; cursor: pointer; transition: border-color .15s;
+}
+.opt:hover { border-color: var(--muted); }
+.opt[aria-pressed="true"] { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+.mini { width: 44px; height: 44px; border-radius: 8px; position: relative; display: grid; place-items: center; border: 1px solid var(--line); }
+.mini span { font: 700 13px var(--f-display); letter-spacing: -.02em; }
+.mini i { position: absolute; width: 5px; height: 5px; right: 7px; bottom: 15px; }
+.opt .t { display: flex; align-items: center; gap: 8px; font-family: var(--f-display); font-weight: 500; font-size: 15px; }
+.opt .t em { font: 500 10px var(--f-mono); font-style: normal; text-transform: uppercase; letter-spacing: .06em; background: var(--accent); color: var(--accent-ink); padding: 2px 6px; border-radius: 4px; }
+.opt .d { color: var(--muted); font-size: 13px; line-height: 1.4; }
+
+.toggles { display: flex; flex-wrap: wrap; gap: 8px 18px; }
+.tg { display: inline-flex; align-items: center; gap: 8px; font-size: 14px; cursor: pointer; user-select: none; }
+.tg input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.sw { width: 34px; height: 20px; border-radius: 999px; background: var(--chip); border: 1px solid var(--line); position: relative; transition: background .15s; }
+.sw::after { content: ""; position: absolute; top: 2px; left: 2px; width: 14px; height: 14px; border-radius: 50%; background: var(--muted); transition: transform .15s, background .15s; }
+.tg input:checked + .sw { background: var(--accent); border-color: var(--accent); }
+.tg input:checked + .sw::after { transform: translateX(14px); background: var(--accent-ink); }
+.tg input:disabled ~ * { opacity: .45; }
+
+.spec { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 14px; }
+.spec dl { margin: 0; display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 7px 14px; font-size: 13px; }
+.spec dt { color: var(--muted); }
+.spec dd { margin: 0; font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
+.swatches { display: flex; flex-wrap: wrap; gap: 6px 12px; }
+.swatches span { display: inline-flex; align-items: center; gap: 6px; }
+.swatches i { width: 12px; height: 12px; border-radius: 3px; border: 1px solid var(--line); display: inline-block; }
+.note { color: var(--muted); font-size: 12.5px; margin: 10px 0 0; }
+@media (prefers-reduced-motion: reduce) { .opt, .sw, .sw::after { transition: none; } }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <h1>Cubo LNK<span class="dot" aria-hidden="true"></span></h1>
+    <p>Cubo de 3 × 3 × 3 cm con el logotipo al centro de la cara. Arrastra para girarlo, rueda o pellizca para acercar.</p>
+  </header>
+
+  <div class="main">
+    <div class="stage" id="stage">
+      <div class="hud top">
+        <span class="tag" id="hudName">Verde LNK</span>
+        <span class="tag"><b>Medida</b> 3 × 3 × 3 cm</span>
+      </div>
+      <div class="hud bottom">
+        <div class="btns">
+          <button class="ghost" id="vFront" type="button">Frente</button>
+          <button class="ghost" id="v34" type="button">3/4</button>
+          <button class="ghost" id="vTop" type="button">Desde arriba</button>
+        </div>
+      </div>
+    </div>
+
+    <aside class="panel">
+      <section>
+        <h2>Variantes</h2>
+        <div class="opts" id="opts"></div>
+      </section>
+      <section class="toggles">
+        <label class="tg" for="fourFaces"><input type="checkbox" id="fourFaces"><span class="sw"></span><span>LNK en las 4 caras</span></label>
+        <label class="tg" for="spin"><input type="checkbox" id="spin" checked><span class="sw"></span><span>Girar solo</span></label>
+      </section>
+      <section class="spec">
+        <h2>Ficha</h2>
+        <dl id="spec"></dl>
+        <p class="note" id="note"></p>
+      </section>
+    </aside>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/geometries/RoundedBoxGeometry.js"></script>
+<script>
+(function () {
+  // Geometría del logotipo tomada de favicon_1.svg (lienzo 512 × 512)
+  const PATH = "M58.0,194.45 L99.04,194.45 L99.04,280.62 L160.59,280.62 L160.59,317.55 L58.0,317.55Z M164.69,317.55 L164.69,194.45 L209.83,194.45 L246.77,265.58 L246.77,194.45 L286.44,194.45 L286.44,317.55 L241.3,317.55 L204.36,246.42 L204.36,317.55Z M290.54,194.45 L331.58,194.45 L331.58,317.55 L290.54,317.55Z M330.21,249.16 L367.14,194.45 L417.75,194.45 L365.77,257.37 L421.85,317.55 L369.88,317.55 L339.78,275.15 L330.21,290.2Z";
+  const DOT = { x: 423.91, y: 287.46, s: 30.09 };
+  const S = 3;              // 3 unidades = 30 mm
+  const K = S / 512;        // escala svg -> cubo
+
+  const OPTIONS = [
+    { id: "verde", name: "Verde LNK", badge: "Tu idea", desc: "El cubo verde es el punto: solo LNK en relieve negro, centrado.",
+      cube: "#7CFF00", letters: "#111111", dot: "#111111", dotOn: false, depth: 0.12, dotDepth: 0.12, rough: 0.42, mode: "Relieve 1,2 mm" },
+    { id: "original", name: "Ícono original", desc: "Negro mate, letras blancas y el punto verde, todo en relieve parejo.",
+      cube: "#141414", letters: "#FFFFFF", dot: "#7CFF00", dotOn: true, depth: 0.12, dotDepth: 0.12, rough: 0.7, mode: "Relieve 1,2 mm" },
+    { id: "negativo", name: "Negativo", desc: "Cubo blanco hueso con LNK en relieve negro y el punto verde.",
+      cube: "#EFEFEA", letters: "#111111", dot: "#7CFF00", dotOn: true, depth: 0.12, dotDepth: 0.12, rough: 0.55, mode: "Relieve 1,2 mm" },
+  ];
+
+  // ---------- Formas ----------
+  const toXY = (x, y, dx) => [(x - 256 + (dx || 0)) * K, (256 - y) * K];
+  function letterShapes(dx) {
+    return PATH.split("M").map(s => s.trim()).filter(Boolean).map(seg => {
+      const pts = seg.replace("Z", "").split("L").map(p => p.trim().split(",").map(Number));
+      const sh = new THREE.Shape();
+      pts.forEach(([x, y], i) => { const [X, Y] = toXY(x, y, dx); i ? sh.lineTo(X, Y) : sh.moveTo(X, Y); });
+      sh.closePath();
+      return sh;
+    });
+  }
+  function dotShape() {
+    const [x0, y0] = toXY(DOT.x, DOT.y + DOT.s), [x1, y1] = toXY(DOT.x + DOT.s, DOT.y);
+    const sh = new THREE.Shape();
+    sh.moveTo(x0, y0); sh.lineTo(x1, y0); sh.lineTo(x1, y1); sh.lineTo(x0, y1); sh.closePath();
+    return sh;
+  }
+  // Sin punto, "LNK" (x 58 → 421.85) se recentra en la cara
+  const LETTERS = letterShapes(0), LETTERS_C = letterShapes(256 - (58 + 421.85) / 2), DOTSHAPE = [dotShape()];
+  const geoCache = new Map();
+  function extrude(shapes, key, depth) {
+    const k = key + depth;
+    if (!geoCache.has(k)) {
+      const bt = Math.min(0.01, depth * 0.25);
+      const g = new THREE.ExtrudeGeometry(shapes, { depth: Math.max(depth - 2 * bt, 0.001), bevelEnabled: true, bevelThickness: bt, bevelSize: bt * 0.6, bevelSegments: 2, curveSegments: 1 });
+      g.translate(0, 0, bt); // ocupa de 0 a depth en z
+      geoCache.set(k, g);
+    }
+    return geoCache.get(k);
+  }
+  function roundedBox(size, r, seg) {
+    return THREE.RoundedBoxGeometry ? new THREE.RoundedBoxGeometry(size, size, size, seg, r) : new THREE.BoxGeometry(size, size, size);
+  }
+  const cubeGeo = roundedBox(S, 0.16, 5);
+  const voxelGeo = roundedBox(0.62, 0.05, 3);
+
+  const lin = hex => new THREE.Color(hex).convertSRGBToLinear();
+  function mat(hex, rough, extra) {
+    return new THREE.MeshStandardMaterial(Object.assign({ color: lin(hex), roughness: rough, metalness: 0 }, extra || {}));
+  }
+
+  // ---------- Escena ----------
+  const stage = document.getElementById("stage");
+  const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  renderer.outputEncoding = THREE.sRGBEncoding;
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  stage.prepend(renderer.domElement);
+
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(32, 1, 0.1, 100);
+  const controls = new THREE.OrbitControls(camera, renderer.domElement);
+  controls.enableDamping = true; controls.dampingFactor = 0.08;
+  controls.enablePan = false; controls.minDistance = 5; controls.maxDistance = 16;
+  controls.autoRotateSpeed = 1.6;
+
+  scene.add(new THREE.HemisphereLight(0xffffff, 0x3a3d36, 0.75));
+  const key = new THREE.DirectionalLight(0xffffff, 1.35);
+  key.position.set(4, 8, 6); key.castShadow = true;
+  key.shadow.mapSize.set(1024, 1024); key.shadow.radius = 6;
+  Object.assign(key.shadow.camera, { left: -4, right: 4, top: 4, bottom: -4, near: 1, far: 25 });
+  key.shadow.bias = -0.0005;
+  scene.add(key);
+  const fill = new THREE.DirectionalLight(0xffffff, 0.45); fill.position.set(-6, 2, 3); scene.add(fill);
+  const rim = new THREE.DirectionalLight(0xffffff, 0.55); rim.position.set(-2, 4, -7); scene.add(rim);
+
+  const ground = new THREE.Mesh(new THREE.PlaneGeometry(30, 30), new THREE.ShadowMaterial({ opacity: 0.16 }));
+  ground.rotation.x = -Math.PI / 2; ground.position.y = -S / 2 - 0.08; ground.receiveShadow = true;
+  scene.add(ground);
+
+  let model = null;
+  function build(opt, four, withDot) {
+    const LS = withDot ? LETTERS : LETTERS_C, LK = withDot ? "L" : "LC";
+    if (model) {
+      scene.remove(model);
+      model.traverse(o => { if (o.material) o.material.dispose(); });
+    }
+    const g = new THREE.Group();
+    const cubeMat = opt.glass
+      ? new THREE.MeshPhysicalMaterial({ color: lin(opt.cube), roughness: 0.08, metalness: 0, transparent: true, opacity: 0.42, clearcoat: 1, clearcoatRoughness: 0.05, depthWrite: false })
+      : mat(opt.cube, opt.rough);
+    const cube = new THREE.Mesh(cubeGeo, cubeMat);
+    cube.castShadow = true; cube.receiveShadow = !opt.glass; cube.renderOrder = 2;
+    g.add(cube);
+
+    const lettersMat = mat(opt.letters, opt.glass ? 0.4 : Math.min(opt.rough, 0.5));
+    const dotMat = opt.dot && withDot ? mat(opt.dot, 0.45) : null;
+
+    if (opt.glass) {
+      const L = new THREE.Mesh(extrude(LS, LK, opt.depth), lettersMat);
+      L.position.z = -opt.depth / 2; L.castShadow = true;
+      g.add(L);
+      if (dotMat) {
+        const D = new THREE.Mesh(extrude(DOTSHAPE, "D", opt.dotDepth), dotMat);
+        D.position.z = -opt.dotDepth / 2;
+        g.add(D);
+      }
+    } else {
+      const faces = four ? 4 : 1;
+      for (let i = 0; i < faces; i++) {
+        const f = new THREE.Group(); f.rotation.y = i * Math.PI / 2;
+        const embed = opt.depth <= 0.03 ? opt.depth - 0.004 : 0.02;
+        const L = new THREE.Mesh(extrude(LS, LK, opt.depth), lettersMat);
+        L.position.z = S / 2 - embed; L.castShadow = true;
+        f.add(L);
+        if (dotMat) {
+          const dEmbed = opt.dotDepth <= 0.03 ? opt.dotDepth - 0.004 : 0.02;
+          const D = new THREE.Mesh(extrude(DOTSHAPE, "D", opt.dotDepth), dotMat);
+          D.position.z = S / 2 - dEmbed; D.castShadow = true;
+          f.add(D);
+        }
+        g.add(f);
+      }
+    }
+    if (opt.voxel) {
+      const v = new THREE.Mesh(voxelGeo, mat(opt.voxel, 0.45));
+      const o = S / 2 - 0.31 + 0.07;
+      v.position.set(o, -o, o); v.castShadow = true;
+      g.add(v);
+    }
+    scene.add(g);
+    model = g;
+  }
+
+  // ---------- Cámara ----------
+  const VIEWS = { front: [0, 0.35, 10.2], q: [5.6, 3.6, 7.4], top: [2.2, 8.6, 5.2] };
+  function setView(name) { camera.position.set(...VIEWS[name]); controls.target.set(0, 0, 0); controls.update(); }
+  setView("q");
+  document.getElementById("vFront").onclick = () => setView("front");
+  document.getElementById("v34").onclick = () => setView("q");
+  document.getElementById("vTop").onclick = () => setView("top");
+
+  function resize() {
+    const w = stage.clientWidth, h = stage.clientHeight;
+    renderer.setSize(w, h, false);
+    camera.aspect = w / h; camera.updateProjectionMatrix();
+  }
+  new ResizeObserver(resize).observe(stage); resize();
+
+  // ---------- UI ----------
+  const optsEl = document.getElementById("opts");
+  const fourEl = document.getElementById("fourFaces");
+  const spinEl = document.getElementById("spin");
+  const specEl = document.getElementById("spec");
+  const hud = document.getElementById("hudName");
+  const noteEl = document.getElementById("note");
+  let current = OPTIONS[0];
+
+  OPTIONS.forEach(o => {
+    const b = document.createElement("button");
+    b.type = "button"; b.className = "opt"; b.dataset.id = o.id;
+    const miniBg = o.glass ? "linear-gradient(135deg," + o.cube + "88," + o.cube + "40)" : o.cube;
+    b.innerHTML =
+      '<span class="mini" style="background:' + miniBg + '"><span style="color:' + o.letters + '">LNK</span>' +
+      (o.dot ? '<i class="mdot" style="background:' + o.dot + '"' + (o.dotOn ? '' : ' hidden') + '></i>' : '') +
+      (o.voxel ? '<i style="background:' + o.voxel + ';right:2px;bottom:2px;width:9px;height:9px;border-radius:2px"></i>' : '') +
+      '</span><span><span class="t">' + o.name + (o.badge ? '<em>' + o.badge + '</em>' : '') + '</span><span class="d">' + o.desc + '</span></span>';
+    b.onclick = () => select(o);
+    optsEl.appendChild(b);
+  });
+
+  function sw(label, hex) { return '<span><i style="background:' + hex + '"></i>' + label + ' ' + hex.toUpperCase() + '</span>'; }
+  function select(o) {
+    current = o;
+    optsEl.querySelectorAll(".opt").forEach(b => b.setAttribute("aria-pressed", b.dataset.id === o.id));
+    fourEl.disabled = !!o.glass;
+    const withDot = !!(o.dot && o.dotOn);
+    build(o, fourEl.checked && !o.glass, withDot);
+    hud.textContent = o.name;
+    noteEl.textContent = withDot
+      ? "Logotipo LNK. a la escala del ícono: 2,32 × 0,72 cm sobre una cara de 3 cm."
+      : "Sin punto, LNK se recentra en la cara: 2,13 × 0,72 cm sobre una cara de 3 cm." + (o.cube === "#7CFF00" ? " El cubo verde hace de punto." : "");
+    const cols = [sw("Cubo", o.cube), sw("Letras", o.letters)];
+    if (withDot && o.dot !== o.letters) cols.push(sw("Punto", o.dot));
+    if (o.voxel) cols.push(sw("Vóxel", o.voxel));
+    specEl.innerHTML =
+      "<dt>Medida</dt><dd>3 × 3 × 3 cm</dd>" +
+      "<dt>Aristas</dt><dd>redondeadas r 1,6 mm</dd>" +
+      "<dt>Logotipo</dt><dd>" + o.mode + "</dd>" +
+      "<dt>Caras</dt><dd>" + (o.glass ? "interior, visible desde todas" : (fourEl.checked ? "4 laterales" : "1 (frente)")) + "</dd>" +
+      "<dt>Colores</dt><dd class=\"swatches\">" + cols.join("") + "</dd>";
+  }
+  fourEl.onchange = () => select(current);
+
+  const reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  spinEl.checked = !reduce;
+  controls.autoRotate = spinEl.checked;
+  spinEl.onchange = () => { controls.autoRotate = spinEl.checked; };
+  controls.addEventListener("start", () => { if (spinEl.checked) { spinEl.checked = false; controls.autoRotate = false; } });
+
+  select(OPTIONS[0]);
+  (function loop() { requestAnimationFrame(loop); controls.update(); renderer.render(scene, camera); })();
+})();
+</script>
+</body>
+</html>
